@@ -19,7 +19,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- CABEÇALHO ATRAENTE ---
-st.title("🍎 Teste: Por que seu corpo 'trava' após os 40?")
+st.title("🍎 Teste: Por que seu corpo 'trava' após os 30?")
 st.write("---")
 st.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80", caption="Análise baseada em hábitos diários")
 
@@ -33,7 +33,7 @@ with st.container():
     pergunta2 = st.radio("Quantas vezes você já tentou dietas que não funcionaram?", 
                             ["1-2 vezes", "Mais de 5 vezes", "Já desisti de contar"])
     
-    pergunta3 = st.slider("Qual sua idade?", 18, 80, 42)
+    pergunta3 = st.slider("Qual sua idade?", 18, 80, 32)
 
     if st.button("REVELAR MEU RESULTADO PERSONALIZADO"):
         # Efeito de carregamento para gerar valor
@@ -61,3 +61,4 @@ with st.container():
         st.markdown("### 🎁 Oferta Especial para Novos Usuários")
         st.link_button("🔥 QUERO DESBLOQUEAR MEU METABOLISMO AGORA", LINK_AFILIADO)
         st.caption(f"Protocolo de rastreamento LTA: {str(uuid.uuid4())[:8]}")
+
