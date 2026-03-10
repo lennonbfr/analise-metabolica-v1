@@ -16,7 +16,6 @@ def salvar_log_google(pergunta, resultado):
             "Resultado": resultado
         }])
         try:
-            # Tenta ler a planilha existente; se vazia, cria novo DF
             dados_atuais = conn.read()
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
@@ -33,7 +32,7 @@ if 'pagina' not in st.session_state:
 
 st.set_page_config(page_title="BioReset Analyse", page_icon="🧪")
 
-# --- 3. ESTILIZAÇÃO CSS (VISUAL CUSTOMIZADO) ---
+# --- 3. ESTILIZAÇÃO CSS (FOCO EM CONVERSÃO) ---
 st.markdown("""
     <style>
     /* Botão da Home: Verde, Borda Preta, Texto Branco e Negrito Extra */
@@ -50,7 +49,7 @@ st.markdown("""
     
     /* Container Suave para o Questionário */
     .quiz-container {
-        background-color: #f0f8ff; /* Azul suave */
+        background-color: #f0f8ff;
         padding: 30px;
         border-radius: 15px;
         border: 1px solid #d1e2ff;
@@ -61,26 +60,24 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- TELA 1: HOME (CAPA COM IMAGEM DA MAÇÃ) ---
+# --- TELA 1: HOME (ENTRADA) ---
 if st.session_state.pagina == 'home':
     st.markdown('<h1 class="main-title">🍎 Teste: Por que seu corpo "trava" após os 30?</h1>', unsafe_allow_html=True)
     st.write("---")
     
-    # Imagem da maçã/saúde que gera conexão intuitiva
+    # Imagem intuitiva (Maçã)
     st.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80")
     
     st.info("Descubra por que dietas comuns não funcionam para o seu perfil genético.")
     
-    # Botão com texto em branco e negrito conforme solicitado
     if st.button("🔥 QUERO DESBLOQUEAR MEU METABOLISMO AGORA"):
         st.session_state.pagina = 'quiz'
         st.rerun()
 
-# --- TELA 2: QUESTIONÁRIO (ESTILIZADO E COMPLETO) ---
+# --- TELA 2: QUESTIONÁRIO (ESTILIZADO) ---
 elif st.session_state.pagina == 'quiz':
     st.markdown('<div class="quiz-container">', unsafe_allow_html=True)
     st.subheader("📋 Persönliche Angaben")
-    st.write("Responda abaixo para gerar sua análise metabólica:")
     
     with st.form("quiz_form"):
         q1 = st.selectbox("1. Was ist Ihr Hauptziel?", 
@@ -93,7 +90,7 @@ elif st.session_state.pagina == 'quiz':
                          ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
         
         q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", 
-                     ["Ja, fast täglich", "Manchmal", "Selten"])
+                     ["Ja, quase todos os dias", "Manchmal", "Raramente"])
         
         q5 = st.slider("5. Wie alt sind Sie?", 18, 80, 43)
         
@@ -105,7 +102,7 @@ elif st.session_state.pagina == 'quiz':
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TELA 3: RESULTADO (CONVERSÃO) ---
+# --- TELA 3: RESULTADO (FINAL) ---
 elif st.session_state.pagina == 'resultado':
     with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
         st.write("🧬 Analysiere Zell-Marker...")
@@ -114,7 +111,7 @@ elif st.session_state.pagina == 'resultado':
         time.sleep(1.5)
         status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
 
-    # Registro de Log na Planilha
+    # Registro de Log
     salvar_log_google(st.session_state.q1, f"Idade: {st.session_state.q5} | Sono: {st.session_state.q2}")
     
     st.balloons()
@@ -130,8 +127,5 @@ elif st.session_state.pagina == 'resultado':
     """, unsafe_allow_html=True)
     
     st.write("")
+    # Única saída possível: Avançar para a compra
     st.link_button("🔥 ACESSAR PROTOCOLO SLIMSANA AGORA", LINK_AFILIADO)
-    
-    if st.button("Teste Neustarten (Reiniciar)"):
-        st.session_state.pagina = 'home'
-        st.rerun()
