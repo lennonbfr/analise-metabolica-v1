@@ -9,23 +9,35 @@ from datetime import datetime
 def salvar_log_google(pergunta, resultado):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
+        
+        # Recupera a origem salva na sessão (ou usa o padrão se não existir)
+        origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
+        
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-            "Origem": "FacebookAds_DE_AT",
+            "Origem": origem_final,
             "Dificuldade": pergunta,
             "Resultado": resultado
         }])
+        
         try:
             dados_atuais = conn.read()
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
             df_final = novo_log
+            
         conn.update(data=df_final)
     except Exception as e:
         print(f"Erro de Log: {e}")
 
 # --- 2. CONFIGURAÇÕES E ESTADO DO APP ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
+
+# Lógica de Captura de UTM (Origem do Anúncio)
+if 'origem' not in st.session_state:
+    # Captura o parâmetro 'utm_content' da URL
+    params = st.query_params
+    st.session_state.origem = params.get("utm_content", "FacebookAds_DE_AT")
 
 if 'pagina' not in st.session_state:
     st.session_state.pagina = 'home'
@@ -111,7 +123,7 @@ elif st.session_state.pagina == 'resultado':
         time.sleep(1.5)
         status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
 
-    # Registro de Log
+    # Registro de Log - Agora com a Origem Dinâmica
     salvar_log_google(st.session_state.q1, f"Idade: {st.session_state.q5} | Sono: {st.session_state.q2}")
     
     st.balloons()
