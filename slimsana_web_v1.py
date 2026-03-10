@@ -5,7 +5,7 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# --- 1. CONFIGURAÇÃO DE LOG ---
+# --- 1. CONFIGURAÇÃO DE LOG (GOOGLE SHEETS) ---
 def salvar_log_google(pergunta, resultado):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
@@ -16,6 +16,7 @@ def salvar_log_google(pergunta, resultado):
             "Resultado": resultado
         }])
         try:
+            # Tenta ler a planilha existente; se vazia, cria novo DF
             dados_atuais = conn.read()
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
@@ -32,59 +33,68 @@ if 'pagina' not in st.session_state:
 
 st.set_page_config(page_title="BioReset Analyse", page_icon="🧪")
 
-# --- 3. ESTILIZAÇÃO CSS (VERDE, PRETO E CORES SUAVES) ---
+# --- 3. ESTILIZAÇÃO CSS (VISUAL CUSTOMIZADO) ---
 st.markdown("""
     <style>
-    /* Botão da Home (Verde e Preto) */
+    /* Botão da Home: Verde, Borda Preta, Texto Branco e Negrito Extra */
     div.stButton > button:first-child {
         background-color: #28a745 !important;
-        color: black !important;
+        color: white !important;
         border: 2px solid black !important;
         border-radius: 10px;
-        font-weight: bold;
-        font-size: 1.2em;
-        height: 4em;
+        font-weight: 800 !important;
+        font-size: 1.3em !important;
+        height: 4.5em;
+        text-shadow: 1px 1px 2px black;
     }
-    /* Estilo Suave para o Questionário */
+    
+    /* Container Suave para o Questionário */
     .quiz-container {
         background-color: #f0f8ff; /* Azul suave */
-        padding: 25px;
+        padding: 30px;
         border-radius: 15px;
         border: 1px solid #d1e2ff;
+        margin-bottom: 20px;
     }
-    .main-title { color: #1e3a5f; text-align: center; font-size: 2em; }
+    
+    .main-title { color: #1e3a5f; text-align: center; font-size: 2.2em; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- TELA 1: HOME (CAPA COM IMAGEM) ---
+# --- TELA 1: HOME (CAPA COM IMAGEM DA MAÇÃ) ---
 if st.session_state.pagina == 'home':
     st.markdown('<h1 class="main-title">🍎 Teste: Por que seu corpo "trava" após os 30?</h1>', unsafe_allow_html=True)
     st.write("---")
     
-    # Imagem da Maçã/Saúde que gera confiança
+    # Imagem da maçã/saúde que gera conexão intuitiva
     st.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80")
     
     st.info("Descubra por que dietas comuns não funcionam para o seu perfil genético.")
     
+    # Botão com texto em branco e negrito conforme solicitado
     if st.button("🔥 QUERO DESBLOQUEAR MEU METABOLISMO AGORA"):
         st.session_state.pagina = 'quiz'
         st.rerun()
 
-# --- TELA 2: QUESTIONÁRIO (ESTILIZADO) ---
+# --- TELA 2: QUESTIONÁRIO (ESTILIZADO E COMPLETO) ---
 elif st.session_state.pagina == 'quiz':
     st.markdown('<div class="quiz-container">', unsafe_allow_html=True)
-    st.subheader("📋 Persönliche Angaben (Sua Análise)")
+    st.subheader("📋 Persönliche Angaben")
+    st.write("Responda abaixo para gerar sua análise metabólica:")
     
     with st.form("quiz_form"):
-        st.markdown("**Por favor, responda com sinceridade para um resultado preciso:**")
-        
         q1 = st.selectbox("1. Was ist Ihr Hauptziel?", 
-                         ["Bauchfett verlieren", "Mehr Energie", "Heißhunger stoppen", "Stoffwechsel beschleunigen"])
+                         ["Bauchfett verlieren (hartnäckig)", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
+        
         q2 = st.radio("2. Wie bewerten Sie Ihre Schlafqualität?", 
-                     ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf"])
+                     ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, aber keine Energie"])
+        
         q3 = st.selectbox("3. Wann verspüren Sie am meisten Hunger?", 
-                         ["Vormittags", "Nachmittags", "Abends/Nachts"])
-        q4 = st.radio("4. Fühlen Sie sich oft aufgebläht?", ["Ja, fast täglich", "Manchmal", "Selten"])
+                         ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
+        
+        q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", 
+                     ["Ja, fast täglich", "Manchmal", "Selten"])
+        
         q5 = st.slider("5. Wie alt sind Sie?", 18, 80, 43)
         
         if st.form_submit_button("ANALYSE STARTEN"):
@@ -95,20 +105,33 @@ elif st.session_state.pagina == 'quiz':
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TELA 3: RESULTADO ---
+# --- TELA 3: RESULTADO (CONVERSÃO) ---
 elif st.session_state.pagina == 'resultado':
-    with st.status("Verarbeitung...", expanded=False):
-        time.sleep(2)
-    
+    with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
+        st.write("🧬 Analysiere Zell-Marker...")
+        time.sleep(1.5)
+        st.write("🔍 Suche nach Blockaden...")
+        time.sleep(1.5)
+        status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
+
+    # Registro de Log na Planilha
     salvar_log_google(st.session_state.q1, f"Idade: {st.session_state.q5} | Sono: {st.session_state.q2}")
     
     st.balloons()
     st.success("✅ ANÁLISE CONCLUÍDA!")
     
     st.markdown(f"""
-    ### Ihr Ergebnis: **Stoffwechsel-Blockade Typ 3**
-    Lennon, basierend auf Ihrem Alter ({st.session_state.q5}) e no seu sono **{st.session_state.q2.lower()}**, 
-    detectamos um 'Zell-Stau' que impede a queima de gordura.
-    """)
+    <div style="background-color: white; padding: 20px; border-radius: 10px; border: 1px solid #eee;">
+    <h3>Ihr Ergebnis: <b>Stoffwechsel-Blockade Typ 3</b></h3>
+    <p>Lennon, basierend auf Ihrem Alter ({st.session_state.q5}) und Ihrem Ziel (<b>{st.session_state.q1}</b>), 
+    identificamos um desajuste enzimático causado por sono <b>{st.session_state.q2.lower()}</b>.</p>
+    <p>O protocolo SlimSana foi identificado como 98% compatível com seu perfil.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    st.link_button("🔥 ACESSAR PROTOCOLO SLIMSANA", LINK_AFILIADO)
+    st.write("")
+    st.link_button("🔥 ACESSAR PROTOCOLO SLIMSANA AGORA", LINK_AFILIADO)
+    
+    if st.button("Teste Neustarten (Reiniciar)"):
+        st.session_state.pagina = 'home'
+        st.rerun()
