@@ -83,6 +83,8 @@ if st.session_state.pagina == 'home':
     st.info("Descubra por que dietas comuns não funcionam para o seu perfil genético.")
     
     if st.button("🔥 QUERO DESBLOQUEAR MEU METABOLISMO AGORA"):
+        # ÚNICA INCLUSÃO: Registra que o usuário entrou no funil
+        salvar_log_google("SISTEMA", "ENTROU_NA_HOME")
         st.session_state.pagina = 'quiz'
         st.rerun()
 
@@ -93,16 +95,16 @@ elif st.session_state.pagina == 'quiz':
     
     with st.form("quiz_form"):
         q1 = st.selectbox("1. Was ist Ihr Hauptziel?", 
-                         ["Bauchfett verlieren (hartnäckig)", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
+                          ["Bauchfett verlieren (hartnäckig)", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
         
         q2 = st.radio("2. Wie bewerten Sie Ihre Schlafqualität?", 
-                     ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, aber keine Energie"])
+                      ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, mas nenhuma energia"])
         
         q3 = st.selectbox("3. Wann verspüren Sie am meisten Hunger?", 
-                         ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
+                          ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
         
         q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", 
-                     ["Ja, quase todos os dias", "Manchmal", "Raramente"])
+                      ["Ja, quase todos os dias", "Manchmal", "Raramente"])
         
         q5 = st.slider("5. Wie alt sind Sie?", 18, 80, 43)
         
@@ -139,5 +141,4 @@ elif st.session_state.pagina == 'resultado':
     """, unsafe_allow_html=True)
     
     st.write("")
-    # Única saída possível: Avançar para a compra
     st.link_button("🔥 ACESSAR PROTOCOLO SLIMSANA AGORA", LINK_AFILIADO)
