@@ -5,92 +5,104 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# --- 1. CONFIGURAÇÃO DA CONEXÃO (GOOGLE SHEETS) ---
+# --- 1. CONFIGURAÇÃO DE LOG (GOOGLE SHEETS) ---
 def salvar_log_google(pergunta, resultado):
     try:
-        # Cria a conexão usando as Secrets do Streamlit
         conn = st.connection("gsheets", type=GSheetsConnection)
-        
-        # Prepara o novo dado
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "Origem": "FacebookAds_DE_AT",
             "Dificuldade": pergunta,
             "Resultado": resultado
         }])
-
-        # Tenta ler os dados existentes. Se a planilha estiver vazia, cria o DF
         try:
             dados_atuais = conn.read()
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
             df_final = novo_log
-        
-        # Faz o update na nuvem
         conn.update(data=df_final)
     except Exception as e:
-        # Log de erro silencioso para não assustar o usuário
-        print(f"Erro na planilha: {e}")
+        print(f"Erro de Log: {e}")
 
-# --- 2. CONFIGURAÇÃO VISUAL E LINKS ---
+# --- 2. CONFIGURAÇÕES GERAIS ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
 
-st.set_page_config(page_title="Teste do Metabolismo - Oficial", page_icon="🥗")
+st.set_page_config(page_title="BioReset - Stoffwechsel Analyse", page_icon="🧪")
 
+# CSS para deixar o visual mais "Clínico/Clean"
 st.markdown("""
     <style>
-    .main { background-color: #ffffff; }
-    .stButton>button { width: 100%; background-color: #28a745; color: white; border-radius: 10px; height: 3em; font-weight: bold; }
-    h1 { color: #1e7e34; text-align: center; font-family: 'Helvetica', sans-serif; }
-    .stRadio > label { font-weight: bold; }
+    .stButton>button { width: 100%; background-color: #0056b3; color: white; border-radius: 8px; font-weight: bold; height: 3.5em; }
+    .result-box { background-color: #f8f9fa; border: 2px solid #dee2e6; padding: 20px; border-radius: 10px; }
+    h1 { color: #0056b3; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- CABEÇALHO ---
-st.title("🍎 Teste: Por que seu corpo 'trava' após os 30?")
+st.title("🔬 Stoffwechsel-Check (BioReset)")
 st.write("---")
-st.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80")
+st.warning("⚠️ **Wichtig:** Diese Analyse ist für Personen über 35 Jahre optimiert.")
 
-st.info("⚠️ Este teste leva apenas 60 segundos e revela o seu Índice de Bloqueio Metabólico.")
-
-# --- O QUIZ ---
-with st.container():
-    pergunta1 = st.selectbox("Qual sua maior dificuldade hoje?", 
-                            ["Gordura abdominal insistente", "Falta de energia durante o dia", "Vontade incontrolável de doces"])
+# --- O NOVO QUIZ (6 PERGUNTAS) ---
+with st.form("quiz_form"):
+    st.subheader("Persönliche Angaben")
     
-    pergunta2 = st.radio("Quantas vezes você já tentou dietas que não funcionaram?", 
-                            ["1-2 vezes", "Mais de 5 vezes", "Já desisti de contar"])
+    q1 = st.selectbox("1. Was ist Ihr Hauptziel?", 
+                     ["Bauchfett verlieren (hartnäckig)", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
     
-    pergunta3 = st.slider("Qual sua idade?", 18, 80, 43) # Ajustado para sua idade atual
+    q2 = st.radio("2. Wie bewerten Sie Ihre Schlafqualität?", 
+                 ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, aber keine Energie tagsüber"])
+    
+    q3 = st.selectbox("3. Wann verspüren Sie am meisten Hunger?", 
+                     ["Vormittags", "Nachmittags (Stress-Peak)", "Abends/Nachts"])
+    
+    q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", 
+                 ["Ja, fast täglich", "Manchmal", "Selten"])
+    
+    q5 = st.radio("5. Wie viele Diät-Versuche haben Sie bereits hinter sich?", 
+                 ["1-2 Versuche", "Mehr als 5", "Ich habe aufgehört zu zählen"])
+    
+    q6 = st.slider("6. Wie alt sind Sie?", 18, 80, 43)
 
-    if st.button("REVELAR MEU RESULTADO PERSONALIZADO"):
-        # Efeito de carregamento
-        progress_bar = st.progress(0)
-        for percent_complete in range(100):
-            time.sleep(0.01)
-            progress_bar.progress(percent_complete + 1)
-        
-        # --- DISPARO DO LOG PARA O GOOGLE SHEETS ---
-        salvar_log_google(pergunta1, "Bloqueio Nível 2")
-        
-        st.balloons()
-        
-        # --- RESULTADO E OFERTA ---
-        st.success("✅ ANÁLISE CONCLUÍDA COM SUCESSO!")
-        
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.image("https://myslimsana.com/images/slimsana-bottle.png", width=150)
-        
-        with col2:
-            st.subheader("Seu Resultado: Bloqueio Nível 2")
-            st.write(f"Lennon, detectamos que sua dificuldade com '{pergunta1}' é causada por um desajuste enzimático.")
-            st.write("A solução alemã **SlimSana** foi identificada como 98% compatível com o seu perfil.")
-        
-        st.divider()
-        st.markdown("### 🎁 Oferta Especial para Novos Usuários")
-        
-        # Botão com link corrigido (?aff=)
-        st.link_button("🔥 QUERO DESBLOQUEAR MEU METABOLISMO AGORA", LINK_AFILIADO)
-        
-        st.caption(f"Protocolo de rastreamento LTA: {str(uuid.uuid4())[:8]}")
+    submit_button = st.form_submit_button("ANALYSE STARTEN")
+
+# --- LÓGICA DE RESULTADO ---
+if submit_button:
+    # Simulação de processamento pesado (Efeito N2 de autoridade)
+    with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
+        st.write("🧬 Analysiere Insulinresistenz-Marker...")
+        time.sleep(1.2)
+        st.write("📊 Berechne Grundumsatz für das Alter...")
+        time.sleep(1.0)
+        st.write("🔍 Suche nach enzymatischen Blockaden...")
+        time.sleep(1.5)
+        status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
+
+    # Disparo de Log
+    log_info = f"Ziel: {q1} | Schlaf: {q2} | Alter: {q6}"
+    salvar_log_google(q1, log_info)
+    
+    st.balloons()
+
+    # --- BOX DE RESULTADO ---
+    st.markdown('<div class="result-box">', unsafe_allow_html=True)
+    st.header("✅ Ergebnis: Stoffwechsel-Blockade Typ 3")
+    
+    st.write(f"""
+    Lennon, basierend auf Ihrem Alter ({q6} Jahre) und Ihrem Hauptproblem (**{q1}**), 
+    hat unser System eine **enzymatische Blockade** festgestellt. 
+    
+    Wenn der Schlaf **{q2.lower()}** ist, produziert der Körper vermehrt Cortisol, 
+    was die Fettverbrennung blockiert – egal wie wenig Sie essen.
+    """)
+    
+    st.error("🚨 **Warnung:** Herkömmliche Diäten werden bei diesem Profil nicht funktionieren.")
+    
+    st.divider()
+    st.subheader("Die Lösung: SlimSana BioReset")
+    st.write("Die deutsche SlimSana-Formel wurde entwickelt, um genau diese enzymatischen Schalter umzulegen.")
+    
+    st.link_button("🔥 JETZT STOFFWECHSEL REAKTIVIEREN", LINK_AFILIADO)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.caption(f"LTA-Tracking-ID: {str(uuid.uuid4())[:8]}")
