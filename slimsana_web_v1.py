@@ -42,6 +42,13 @@ if 'origem' not in st.session_state:
 if 'pagina' not in st.session_state:
     st.session_state.pagina = 'home'
 
+# --- LOG DE ENTRADA (NOVO) ---
+# Isso registra assim que o site carrega na tela do usuário
+if 'usuario_chegou' not in st.session_state:
+    st.session_state.usuario_chegou = True
+    # Registra na planilha que o link foi clicado e a imagem inicial carregou
+    salvar_log_google("Acessou o Link", "Usuário carregou a página inicial do teste")
+
 # Trava para evitar repetição de balões e logs de conclusão
 if 'log_concluido' not in st.session_state:
     st.session_state.log_concluido = False
@@ -145,5 +152,6 @@ elif st.session_state.pagina == 'resultado':
         
         st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
         st.stop()
+
 
 
