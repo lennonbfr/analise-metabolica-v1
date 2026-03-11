@@ -8,9 +8,11 @@ from datetime import datetime
 # --- 1. CONFIGURAÇÃO DE LOG (ORIGINAL E SILENCIOSA) ---
 def salvar_log_google(pergunta, resultado):
     try:
+        # Estabelece a conexão
         conn = st.connection("gsheets", type=GSheetsConnection)
         origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
         
+        # Cria o novo registro
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "Origem": origem_final,
@@ -18,16 +20,28 @@ def salvar_log_google(pergunta, resultado):
             "Resultado": resultado
         }])
         
+        # IMPORTANTE: Lendo com ttl=0 para forçar a conexão com o Google
         try:
-            dados_atuais = conn.read(worksheet="Página1")
+            # Força a leitura da planilha atual para anexar no final
+            dados_atuais = conn.read(worksheet="Página1", ttl=0)
+            
+            # Remove linhas vazias que podem travar o append
+            dados_atuais = dados_atuais.dropna(how='all')
+            
+            # Concatena o novo log
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
-        except:
+        except Exception as e:
+            # Se a planilha estiver vazia, o novo_log vira o df_final
             df_final = novo_log
             
+        # Tenta atualizar a planilha
         conn.update(worksheet="Página1", data=df_final)
+        print("Log enviado com sucesso!") # Aparece apenas no log do servidor Streamlit
+        
     except Exception as e:
-        # Erro invisível para o usuário final
-        print(f"Log Error: {e}")
+        # Log de erro técnico no console para diagnóstico do Analista
+        st.error(f"Erro técnico de conexão: Verifique as Secrets e os filtros da planilha.")
+        print(f"Erro ao salvar no Google Sheets: {e}")
 
 # --- 2. CONFIGURAÇÕES ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
@@ -141,3 +155,4 @@ elif st.session_state.pagina == 'resultado':
     
     st.write("")
     st.link_button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", LINK_AFILIADO)
+
