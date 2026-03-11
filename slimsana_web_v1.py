@@ -11,11 +11,12 @@ def salvar_log_google(pergunta, resultado):
         conn = st.connection("gsheets", type=GSheetsConnection)
         origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
         
+        # Agora as colunas e os logs são 100% em português
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "Origem": origem_final,
-            "Dificuldade": pergunta,
-            "Resultado": resultado
+            "Evento": pergunta,  # Mudamos de 'Dificuldade' para 'Evento'
+            "Detalhe": resultado  # Mudamos de 'Resultado' para 'Detalhe'
         }])
         
         try:
@@ -73,7 +74,7 @@ if st.session_state.pagina == 'home':
     st.info("Finden Sie heraus, warum herkömmliche Diäten nicht für Ihr genetisches Profil funktionieren.")
     
     if st.button("🔥 MEINEN STOFFWECHSEL JETZT FREISCHALTEN"):
-        salvar_log_google("SYSTEM", "HOME_BETRETEN")
+        salvar_log_google("Entrou no Site", "Cliente visualizou a página inicial")
         st.session_state.pagina = 'quiz'
         st.rerun()
 
@@ -110,17 +111,13 @@ elif st.session_state.pagina == 'quiz':
 elif st.session_state.pagina == 'resultado':
     # Executa apenas na primeira vez que entra na tela
     if not st.session_state.log_concluido:
-        with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
-            st.write("🧬 Zell-Marker werden analysiert...")
-            time.sleep(1.2)
-            st.write("🔍 Suche nach Blockaden...")
-            time.sleep(1.2)
-            status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
-
-        log_detalhado = (f"Nome: {st.session_state.nome_usuario} | Peso: {st.session_state.peso_usuario}kg | "
-                        f"Alt: {st.session_state.altura_usuario}cm | Goal: {st.session_state.q1} | "
-                        f"Schlaf: {st.session_state.q2} | Hunger: {st.session_state.q3} | "
-                        f"Bläh: {st.session_state.q4} | Alter: {st.session_state.q5}")
+        # O cliente continua vendo o processo em alemão para conversão...
+        # Mas o seu log agora é direto ao ponto:
+        log_limpo = f"O usuário {st.session_state.nome_usuario} finalizou o teste com sucesso."
+        
+        salvar_log_google("Realizou o Teste", log_limpo)
+        st.balloons()
+        st.session_state.log_concluido = True
         
         salvar_log_google("ABGESCHLOSSEN", log_detalhado)
         st.balloons()
@@ -141,7 +138,7 @@ elif st.session_state.pagina == 'resultado':
     st.write("")
     
     if st.button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", use_container_width=True):
-        salvar_log_google("CLICK_CHECKOUT", f"Usuario: {st.session_state.nome_usuario}")
-        # Redirecionamento via meta-refresh para evitar o duplo clique
+        salvar_log_google("Clicou no Checkout", f"O usuário {st.session_state.nome_usuario} foi para a página de pagamento")
         st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
         st.stop()
+
