@@ -139,8 +139,11 @@ elif st.session_state.pagina == 'resultado':
     st.write("")
     
     if st.button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", use_container_width=True):
-        # LOG DE SAÍDA EM PORTUGUÊS
-        salvar_log_google("Clicou no Checkout", f"O usuário {st.session_state.nome_usuario} foi para o pagamento.")
+        # MUDANÇA TÉCNICA: Identificando que ele foi para a página de vendas/produto, não pagamento direto.
+        detalhe_saida = f"O usuário {st.session_state.nome_usuario} saiu do quiz para a Página do Produto (VSL)."
+        salvar_log_google("Acessou Página de Vendas", detalhe_saida)
+        
         st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
         st.stop()
+
 
