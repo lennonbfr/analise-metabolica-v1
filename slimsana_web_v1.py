@@ -8,7 +8,6 @@ from datetime import datetime
 # --- 1. CONFIGURAÇÃO DE LOG (BLINDADA E SILENCIOSA) ---
 def salvar_log_google(pergunta, resultado):
     try:
-        # A conexão e o log agora são internos. Se falhar, o cliente NÃO vê.
         conn = st.connection("gsheets", type=GSheetsConnection)
         origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
         
@@ -20,7 +19,7 @@ def salvar_log_google(pergunta, resultado):
         }])
         
         try:
-            # Tenta ler a aba Página1. Se houver erro de formatação na planilha, ele ignora.
+            # Tenta ler a aba Página1 (Certifique-se que ela não é uma "Tabela" formatada no Google)
             dados_atuais = conn.read(worksheet="Página1")
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
@@ -28,7 +27,7 @@ def salvar_log_google(pergunta, resultado):
             
         conn.update(worksheet="Página1", data=df_final)
     except Exception as e:
-        # Erro impresso apenas no console do servidor/terminal, invisível para o usuário.
+        # Erro invisível para o cliente
         print(f"Log Error: {e}")
 
 # --- 2. CONFIGURAÇÕES ---
@@ -43,21 +42,47 @@ if 'pagina' not in st.session_state:
 
 st.set_page_config(page_title="BioReset Analyse", page_icon="🧪")
 
-# --- 3. CSS (RESTAURADO) ---
+# --- 3. CSS (VISUAL PREMIUM REESTRUTURADO) ---
 st.markdown("""
     <style>
+    /* Estilo do Botão Principal */
     div.stButton > button:first-child {
         background-color: #28a745 !important;
         color: white !important;
         border: 2px solid black !important;
-        border-radius: 10px;
+        border-radius: 12px;
         font-weight: 800 !important;
         font-size: 1.3em !important;
         height: 4.5em;
+        width: 100%;
         text-shadow: 1px 1px 2px black;
+        transition: transform 0.2s;
     }
-    .quiz-container { background-color: #f0f8ff; padding: 30px; border-radius: 15px; border: 1px solid #d1e2ff; }
-    .main-title { color: #1e3a5f; text-align: center; font-size: 2.2em; font-weight: bold; }
+    div.stButton > button:hover {
+        transform: scale(1.02);
+    }
+    
+    /* Container do Quiz */
+    .quiz-container { 
+        background: rgba(255, 255, 255, 0.05); 
+        padding: 30px; 
+        border-radius: 20px; 
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+    
+    .main-title { 
+        color: #f8fafc; 
+        text-align: center; 
+        font-size: 2.2em; 
+        font-weight: 800;
+        margin-bottom: 30px;
+    }
+    
+    /* Ajuste para inputs no fundo escuro */
+    .stTextInput, .stSelectbox, .stNumberInput {
+        color: white !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -111,7 +136,7 @@ elif st.session_state.pagina == 'quiz':
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TELA 3: RESULTADO ---
+# --- TELA 3: RESULTADO (OPÇÃO 2: GLASSMORPHISM) ---
 elif st.session_state.pagina == 'resultado':
     with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
         st.write("🧬 Zell-Marker werden analysiert...")
@@ -123,15 +148,42 @@ elif st.session_state.pagina == 'resultado':
     salvar_log_google("ABGESCHLOSSEN", f"Name: {st.session_state.nome_usuario} | {st.session_state.peso_usuario}kg | {st.session_state.altura_usuario}cm")
     
     st.balloons()
-    st.success("✅ ANALYSE ABGESCHLOSSEN!")
     
+    # --- BLOCO VISUAL PREMIUM (OPÇÃO 2) ---
     st.markdown(f"""
-    <div style="background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #eee; color: #1e3a5f;">
-    <h3 style="color: #1e3a5f; margin-top: 0;">Ihr Ergebnis: <b>Stoffwechsel-Blockade Typ 3</b></h3>
-    <p style="color: #1e3a5f;">Hallo <b>{st.session_state.nome_usuario}</b>, basierend auf Ihrem Alter ({st.session_state.q5}), 
-    Ihrem Gewicht ({st.session_state.peso_usuario} kg) und Ihrer Größe ({st.session_state.altura_usuario} cm), 
-    haben wir ein enzymatisches Ungleichgewicht festgestellt, das durch <b>{st.session_state.q2.lower()}</b> Schlaf verursacht wird.</p>
-    <p style="color: #1e3a5f;">Das SlimSana-Protokoll wurde zu 98% als kompatibel mit Ihrem Profil eingestuft.</p>
+    <div style="
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        padding: 35px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #1e293b;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin: 20px 0;
+    ">
+        <h2 style="color: #2563eb; text-align: center; font-size: 1.8rem; font-weight: 800; margin-top: 0;">
+            ✅ ANALYSE BEREIT
+        </h2>
+        
+        <hr style="border: 0; height: 1px; background: linear-gradient(to right, transparent, #2563eb, transparent); margin: 20px 0;">
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #dcfce7; color: #166534; padding: 6px 15px; border-radius: 50px; font-weight: bold; font-size: 0.9rem;">
+                STOFFWECHSEL-BLOCKADE TYP 3
+            </span>
+        </div>
+        
+        <p style="font-size: 1.15rem; line-height: 1.6; color: #334155; text-align: left;">
+            Hallo <b>{st.session_state.nome_usuario}</b>, basierend auf Ihrem Alter ({st.session_state.q5}), 
+            Ihrem Gewicht ({st.session_state.peso_usuario} kg) e Ihrer Größe ({st.session_state.altura_usuario} cm), 
+            haben wir um <b>enzymatisches Ungleichgewicht</b> festgestellt.
+        </p>
+        
+        <div style="background: rgba(37, 99, 235, 0.05); padding: 15px; border-radius: 12px; margin-top: 15px; border-left: 5px solid #2563eb;">
+            <p style="margin: 0; color: #1e3a8a; font-weight: 600;">
+                🧬 Kompatibilität mit dem SlimSana-Protokoll: 98%
+            </p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
