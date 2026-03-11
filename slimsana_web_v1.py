@@ -107,30 +107,31 @@ elif st.session_state.pagina == 'quiz':
             })
             st.rerun()
 
-# --- TELA 3: RESULTADO ---
+# --- TELA 3: RESULTADO (VERSÃO FINAL LIMPA) ---
 elif st.session_state.pagina == 'resultado':
-    # Executa apenas na primeira vez que entra na tela
+    # Executa apenas na primeira vez que entra na tela para não repetir balões e logs
     if not st.session_state.log_concluido:
-        # O cliente continua vendo o processo em alemão para conversão...
-        # Mas o seu log agora é direto ao ponto:
+        with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
+            st.write("🧬 Zell-Marker werden analysiert...")
+            time.sleep(1.2)
+            status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
+
+        # LOG 100% EM PORTUGUÊS E SEM POLUIÇÃO DE DADOS TÉCNICOS
         log_limpo = f"O usuário {st.session_state.nome_usuario} finalizou o teste com sucesso."
-        
         salvar_log_google("Realizou o Teste", log_limpo)
-        st.balloons()
-        st.session_state.log_concluido = True
         
-        salvar_log_google("ABGESCHLOSSEN", log_detalhado)
         st.balloons()
-        st.session_state.log_concluido = True # Ativa a trava
+        st.session_state.log_concluido = True # Trava para não repetir nada
 
     st.success("✅ ANALYSE ABGESCHLOSSEN!")
     
+    # O cliente vê o resultado dele (necessário para a conversão), mas você não recebe isso no log
     st.markdown(f"""
     ### Ihr Ergebnis: Stoffwechsel-Blockade Typ 3
     
     Hallo **{st.session_state.nome_usuario}**, basierend auf Ihrem Alter ({st.session_state.q5}), 
     Ihrem Gewicht ({st.session_state.peso_usuario} kg) und Ihrer Größe ({st.session_state.altura_usuario} cm), 
-    haben wir ein enzymatisches Ungleichgewicht festgestellt, das durch **{st.session_state.q2.lower()}** Schlaf verursacht wird.
+    haben wir ein enzymatisches Ungleichgewicht festgestellt.
     
     Das SlimSana-Protokoll wurde zu 98% als kompatibel mit Ihrem Profil eingestuft.
     """)
@@ -138,7 +139,8 @@ elif st.session_state.pagina == 'resultado':
     st.write("")
     
     if st.button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", use_container_width=True):
-        salvar_log_google("Clicou no Checkout", f"O usuário {st.session_state.nome_usuario} foi para a página de pagamento")
+        # LOG DE SAÍDA EM PORTUGUÊS
+        salvar_log_google("Clicou no Checkout", f"O usuário {st.session_state.nome_usuario} foi para o pagamento.")
         st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
         st.stop()
 
