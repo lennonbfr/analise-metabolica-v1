@@ -5,13 +5,12 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# --- 1. CONFIGURAÇÃO DE LOG (ORIGINAL E SILENCIOSA) ---
+# --- 1. CONFIGURAÇÃO DE LOG (OTIMIZADA) ---
 def salvar_log_google(pergunta, resultado):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
         
-        # Ajustado para bater exatamente com as colunas geradas
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "Origem": origem_final,
@@ -20,10 +19,7 @@ def salvar_log_google(pergunta, resultado):
         }])
         
         try:
-            # Lê a aba Página1 ignorando o cache para evitar duplicidade
             dados_atuais = conn.read(worksheet="Página1", ttl=0)
-            
-            # Se a planilha tiver dados, ele concatena abaixo
             if not dados_atuais.empty:
                 df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
             else:
@@ -31,19 +27,9 @@ def salvar_log_google(pergunta, resultado):
         except:
             df_final = novo_log
             
-        # O pulo do gato: Sobrescreve a partir da célula A1 para alinhar tudo
         conn.update(worksheet="Página1", data=df_final)
     except Exception as e:
         print(f"Erro no log: {e}")
-            
-        # Tenta atualizar a planilha
-        conn.update(worksheet="Página1", data=df_final)
-        print("Log enviado com sucesso!") # Aparece apenas no log do servidor Streamlit
-        
-    except Exception as e:
-        # Log de erro técnico no console para diagnóstico do Analista
-        st.error(f"Erro técnico de conexão: Verifique as Secrets e os filtros da planilha.")
-        print(f"Erro ao salvar no Google Sheets: {e}")
 
 # --- 2. CONFIGURAÇÕES ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
@@ -55,9 +41,13 @@ if 'origem' not in st.session_state:
 if 'pagina' not in st.session_state:
     st.session_state.pagina = 'home'
 
+# Trava para evitar repetição de balões e logs de conclusão
+if 'log_concluido' not in st.session_state:
+    st.session_state.log_concluido = False
+
 st.set_page_config(page_title="BioReset Analyse", page_icon="🧪")
 
-# --- 3. CSS ORIGINAL (BOTÃO VERDE E TEXTOS LIMPOS) ---
+# --- 3. CSS ORIGINAL ---
 st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -87,10 +77,9 @@ if st.session_state.pagina == 'home':
         st.session_state.pagina = 'quiz'
         st.rerun()
 
-# --- TELA 2: QUESTIONÁRIO (ESTRUTURA COMPLETA) ---
+# --- TELA 2: QUESTIONÁRIO ---
 elif st.session_state.pagina == 'quiz':
     st.subheader("📋 Persönliche Angaben")
-    
     with st.form("quiz_form"):
         nome_input = st.text_input("Vollständiger Name")
         c1, c2 = st.columns(2)
@@ -100,51 +89,45 @@ elif st.session_state.pagina == 'quiz':
             altura_input = st.number_input("Größe (cm)", min_value=120, max_value=220, value=170, step=1)
         
         st.write("---")
-        
-        q1 = st.selectbox("1. Was ist Ihr Hauptziel?", 
-                          ["Bauchfett verlieren", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
-        q2 = st.radio("2. Wie bewerten Sie Ihre Schlafqualität?", 
-                      ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, mas keine Energie"])
-        q3 = st.selectbox("3. Wann verspüren Sie am meisten Hunger?", 
-                          ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
-        q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", 
-                      ["Ja, fast jeden Tag", "Manchmal", "Selten"])
-    
+        q1 = st.selectbox("1. Was ist Ihr Hauptziel?", ["Bauchfett verlieren", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
+        q2 = st.radio("2. Wie bewerten Sie Ihre Schlafqualität?", ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, mas keine Energie"])
+        q3 = st.selectbox("3. Wann verspüren Sie am meisten Hunger?", ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
+        q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", ["Ja, fast jeden Tag", "Manchmal", "Selten"])
         q5 = st.slider("5. Wie alt sind Sie?", 18, 80, 43)
         
         if st.form_submit_button("ANALYSE STARTEN"):
-            st.session_state.nome_usuario = nome_input if nome_input else "Besucher"
-            st.session_state.peso_usuario = peso_input
-            st.session_state.altura_usuario = altura_input
-            st.session_state.q1 = q1
-            st.session_state.q2 = q2
-            st.session_state.q3 = q3
-            st.session_state.q4 = q4
-            st.session_state.q5 = q5
-            st.session_state.pagina = 'resultado'
+            st.session_state.update({
+                "nome_usuario": nome_input if nome_input else "Besucher",
+                "peso_usuario": peso_input,
+                "altura_usuario": altura_input,
+                "q1": q1, "q2": q2, "q3": q3, "q4": q4, "q5": q5,
+                "pagina": 'resultado',
+                "log_concluido": False # Reseta a trava para o novo teste
+            })
             st.rerun()
 
-# --- TELA 3: RESULTADO (VOLTA AO ORIGINAL) ---
+# --- TELA 3: RESULTADO ---
 elif st.session_state.pagina == 'resultado':
-    with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
-        st.write("🧬 Zell-Marker werden analysiert...")
-        time.sleep(1.5)
-        st.write("🔍 Suche nach Blockaden...")
-        time.sleep(1.5)
-        status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
+    # Executa apenas na primeira vez que entra na tela
+    if not st.session_state.log_concluido:
+        with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
+            st.write("🧬 Zell-Marker werden analysiert...")
+            time.sleep(1.2)
+            st.write("🔍 Suche nach Blockaden...")
+            time.sleep(1.2)
+            status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
 
-    # Log detalhado restaurado para a planilha
-    log_detalhado = (f"Nome: {st.session_state.nome_usuario} | Peso: {st.session_state.peso_usuario}kg | "
-                    f"Alt: {st.session_state.altura_usuario}cm | Goal: {st.session_state.q1} | "
-                    f"Schlaf: {st.session_state.q2} | Hunger: {st.session_state.q3} | "
-                    f"Bläh: {st.session_state.q4} | Alter: {st.session_state.q5}")
-    
-    salvar_log_google("ABGESCHLOSSEN", log_detalhado)
-    
-    st.balloons()
+        log_detalhado = (f"Nome: {st.session_state.nome_usuario} | Peso: {st.session_state.peso_usuario}kg | "
+                        f"Alt: {st.session_state.altura_usuario}cm | Goal: {st.session_state.q1} | "
+                        f"Schlaf: {st.session_state.q2} | Hunger: {st.session_state.q3} | "
+                        f"Bläh: {st.session_state.q4} | Alter: {st.session_state.q5}")
+        
+        salvar_log_google("ABGESCHLOSSEN", log_detalhado)
+        st.balloons()
+        st.session_state.log_concluido = True # Ativa a trava
+
     st.success("✅ ANALYSE ABGESCHLOSSEN!")
     
-    # Visual limpo e original (fundo branco padrão do Streamlit, sem bordas Paint)
     st.markdown(f"""
     ### Ihr Ergebnis: Stoffwechsel-Blockade Typ 3
     
@@ -157,12 +140,8 @@ elif st.session_state.pagina == 'resultado':
     
     st.write("")
     
-    # Substituição da linha st.link_button para rastrear o clique de saída
     if st.button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", use_container_width=True):
-        # 1. Registra no seu funil que o cliente clicou para comprar
-        salvar_log_google("CLICK_CHECKOUT", f"Usuario: {st.session_state.nome_usuario} clicou no botão de vendas")
-        
-        # 2. Redireciona para o seu link de afiliado
+        salvar_log_google("CLICK_CHECKOUT", f"Usuario: {st.session_state.nome_usuario}")
+        # Redirecionamento via meta-refresh para evitar o duplo clique
         st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
-
-
+        st.stop()
