@@ -8,11 +8,10 @@ from datetime import datetime
 # --- 1. CONFIGURAÇÃO DE LOG (ORIGINAL E SILENCIOSA) ---
 def salvar_log_google(pergunta, resultado):
     try:
-        # Estabelece a conexão
         conn = st.connection("gsheets", type=GSheetsConnection)
         origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
         
-        # Cria o novo registro
+        # Ajustado para bater exatamente com as colunas geradas
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "Origem": origem_final,
@@ -20,19 +19,22 @@ def salvar_log_google(pergunta, resultado):
             "Resultado": resultado
         }])
         
-        # IMPORTANTE: Lendo com ttl=0 para forçar a conexão com o Google
         try:
-            # Força a leitura da planilha atual para anexar no final
+            # Lê a aba Página1 ignorando o cache para evitar duplicidade
             dados_atuais = conn.read(worksheet="Página1", ttl=0)
             
-            # Remove linhas vazias que podem travar o append
-            dados_atuais = dados_atuais.dropna(how='all')
-            
-            # Concatena o novo log
-            df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
-        except Exception as e:
-            # Se a planilha estiver vazia, o novo_log vira o df_final
+            # Se a planilha tiver dados, ele concatena abaixo
+            if not dados_atuais.empty:
+                df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
+            else:
+                df_final = novo_log
+        except:
             df_final = novo_log
+            
+        # O pulo do gato: Sobrescreve a partir da célula A1 para alinhar tudo
+        conn.update(worksheet="Página1", data=df_final)
+    except Exception as e:
+        print(f"Erro no log: {e}")
             
         # Tenta atualizar a planilha
         conn.update(worksheet="Página1", data=df_final)
@@ -155,4 +157,5 @@ elif st.session_state.pagina == 'resultado':
     
     st.write("")
     st.link_button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", LINK_AFILIADO)
+
 
