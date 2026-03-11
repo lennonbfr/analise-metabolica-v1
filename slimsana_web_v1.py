@@ -5,14 +5,13 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# --- 1. CONFIGURAÇÃO DE LOG ---
+# --- 1. CONFIGURAÇÃO DE LOG (BLINDADA E SILENCIOSA) ---
 def salvar_log_google(pergunta, resultado):
     try:
-        # Conexão utilizando st-gsheets-connection
+        # A conexão e o log agora são internos. Se falhar, o cliente NÃO vê.
         conn = st.connection("gsheets", type=GSheetsConnection)
         origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
         
-        # Criação do novo registro
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "Origem": origem_final,
@@ -21,19 +20,16 @@ def salvar_log_google(pergunta, resultado):
         }])
         
         try:
-            # Tenta ler os dados existentes na aba 'Página1'
+            # Tenta ler a aba Página1. Se houver erro de formatação na planilha, ele ignora.
             dados_atuais = conn.read(worksheet="Página1")
-            # Concatena preservando a estrutura
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
-            # Se a aba estiver vazia ou não existir, o novo log torna-se a base
             df_final = novo_log
             
-        # Atualiza a planilha na aba correta
         conn.update(worksheet="Página1", data=df_final)
     except Exception as e:
-        # Usando st.error para você conseguir ver o erro no navegador se falhar
-        st.error(f"Erro de Log: {e}")
+        # Erro impresso apenas no console do servidor/terminal, invisível para o usuário.
+        print(f"Log Error: {e}")
 
 # --- 2. CONFIGURAÇÕES ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
@@ -47,7 +43,7 @@ if 'pagina' not in st.session_state:
 
 st.set_page_config(page_title="BioReset Analyse", page_icon="🧪")
 
-# --- 3. CSS ---
+# --- 3. CSS (RESTAURADO) ---
 st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -65,7 +61,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- TELA 1: HOME (CORRIGIDA PARA ALEMÃO) ---
+# --- TELA 1: HOME ---
 if st.session_state.pagina == 'home':
     st.markdown('<h1 class="main-title">🍎 Test: Warum Ihr Körper nach dem 30. Lebensjahr "blockiert"?</h1>', unsafe_allow_html=True)
     st.write("---")
@@ -78,7 +74,7 @@ if st.session_state.pagina == 'home':
         st.session_state.pagina = 'quiz'
         st.rerun()
 
-# --- TELA 2: QUESTIONÁRIO (ALEMÃO) ---
+# --- TELA 2: QUESTIONÁRIO ---
 elif st.session_state.pagina == 'quiz':
     st.markdown('<div class="quiz-container">', unsafe_allow_html=True)
     st.subheader("📋 Persönliche Angaben")
@@ -115,7 +111,7 @@ elif st.session_state.pagina == 'quiz':
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TELA 3: RESULTADO (ALEMÃO) ---
+# --- TELA 3: RESULTADO ---
 elif st.session_state.pagina == 'resultado':
     with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
         st.write("🧬 Zell-Marker werden analysiert...")
