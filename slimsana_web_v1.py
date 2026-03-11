@@ -5,7 +5,7 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# --- 1. CONFIGURAÇÃO DE LOG (COMPLETA E SILENCIOSA) ---
+# --- 1. CONFIGURAÇÃO DE LOG (ORIGINAL E SILENCIOSA) ---
 def salvar_log_google(pergunta, resultado):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
@@ -19,7 +19,6 @@ def salvar_log_google(pergunta, resultado):
         }])
         
         try:
-            # Tenta ler a aba Página1. TTL omitido para evitar cache no log.
             dados_atuais = conn.read(worksheet="Página1")
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
@@ -27,7 +26,7 @@ def salvar_log_google(pergunta, resultado):
             
         conn.update(worksheet="Página1", data=df_final)
     except Exception as e:
-        # Erro invisível para o cliente no front-end
+        # Erro invisível para o usuário final
         print(f"Log Error: {e}")
 
 # --- 2. CONFIGURAÇÕES ---
@@ -42,7 +41,7 @@ if 'pagina' not in st.session_state:
 
 st.set_page_config(page_title="BioReset Analyse", page_icon="🧪")
 
-# --- 3. CSS (RESTAURADO E AMPLIADO) ---
+# --- 3. CSS ORIGINAL (BOTÃO VERDE E TEXTOS LIMPOS) ---
 st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -53,28 +52,15 @@ st.markdown("""
         font-weight: 800 !important;
         font-size: 1.3em !important;
         height: 4.5em;
+        width: 100%;
         text-shadow: 1px 1px 2px black;
     }
-    .quiz-container { 
-        background-color: rgba(255, 255, 255, 0.05); 
-        padding: 30px; 
-        border-radius: 15px; 
-        border: 1px solid rgba(255, 255, 255, 0.1); 
-    }
-    .main-title { color: #f8fafc; text-align: center; font-size: 2.2em; font-weight: bold; }
-    
-    /* Garante visibilidade dos inputs no fundo escuro */
-    .stTextInput input, .stNumberInput input, .stSelectbox div {
-        color: #1e293b !important;
-        background-color: white !important;
-    }
-    label { color: white !important; font-weight: bold !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- TELA 1: HOME ---
 if st.session_state.pagina == 'home':
-    st.markdown('<h1 class="main-title">🍎 Test: Warum Ihr Körper nach dem 30. Lebensjahr "blockiert"?</h1>', unsafe_allow_html=True)
+    st.markdown('# 🍎 Test: Warum Ihr Körper nach dem 30. Lebensjahr "blockiert"?')
     st.write("---")
     st.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80")
     
@@ -85,9 +71,8 @@ if st.session_state.pagina == 'home':
         st.session_state.pagina = 'quiz'
         st.rerun()
 
-# --- TELA 2: QUESTIONÁRIO (TODAS AS PERGUNTAS RESTAURADAS) ---
+# --- TELA 2: QUESTIONÁRIO (ESTRUTURA COMPLETA) ---
 elif st.session_state.pagina == 'quiz':
-    st.markdown('<div class="quiz-container">', unsafe_allow_html=True)
     st.subheader("📋 Persönliche Angaben")
     
     with st.form("quiz_form"):
@@ -122,9 +107,8 @@ elif st.session_state.pagina == 'quiz':
             st.session_state.q5 = q5
             st.session_state.pagina = 'resultado'
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TELA 3: RESULTADO (VISUAL PREMIUM CORRIGIDO) ---
+# --- TELA 3: RESULTADO (VOLTA AO ORIGINAL) ---
 elif st.session_state.pagina == 'resultado':
     with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
         st.write("🧬 Zell-Marker werden analysiert...")
@@ -133,7 +117,7 @@ elif st.session_state.pagina == 'resultado':
         time.sleep(1.5)
         status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
 
-    # Log detalhado com todas as métricas para a planilha
+    # Log detalhado restaurado para a planilha
     log_detalhado = (f"Nome: {st.session_state.nome_usuario} | Peso: {st.session_state.peso_usuario}kg | "
                     f"Alt: {st.session_state.altura_usuario}cm | Goal: {st.session_state.q1} | "
                     f"Schlaf: {st.session_state.q2} | Hunger: {st.session_state.q3} | "
@@ -142,29 +126,18 @@ elif st.session_state.pagina == 'resultado':
     salvar_log_google("ABGESCHLOSSEN", log_detalhado)
     
     st.balloons()
-    
-    # Alerta de sucesso restaurado
     st.success("✅ ANALYSE ABGESCHLOSSEN!")
     
-    # CARD PREMIUM RENDEREIZADO (UNSAFE_ALLOW_HTML=TRUE)
-    resultado_html = f"""
-    <div style="background: rgba(255, 255, 255, 0.95); padding: 35px; border-radius: 20px; color: #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 20px 0; border: 1px solid rgba(255, 255, 255, 0.3);">
-        <h2 style="color: #2563eb; text-align: center; font-weight: 800; margin-top: 0;">✅ ANALYSE BEREIT</h2>
-        <hr style="border: 0; height: 1px; background: linear-gradient(to right, transparent, #2563eb, transparent); margin: 20px 0;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <span style="background: #dcfce7; color: #166534; padding: 6px 15px; border-radius: 50px; font-weight: bold; font-size: 0.9rem;">STOFFWECHSEL-BLOCKADE TYP 3</span>
-        </div>
-        <p style="font-size: 1.1rem; line-height: 1.6; color: #334155;">
-            Hallo <b>{st.session_state.nome_usuario}</b>, basierend auf Ihrem Alter ({st.session_state.q5}), 
-            Ihrem Gewicht ({st.session_state.peso_usuario} kg) und Ihrer Größe ({st.session_state.altura_usuario} cm), 
-            haben wir ein <b>enzymatisches Ungleichgewicht</b> festgestellt, das durch <b>{st.session_state.q2.lower()}</b> Schlaf verursacht wird.
-        </p>
-        <div style="background: rgba(37, 99, 235, 0.1); padding: 15px; border-radius: 12px; border-left: 5px solid #2563eb; margin-top: 15px;">
-            <p style="margin: 0; color: #1e3a8a; font-weight: 600;">🧬 Kompatibilität mit dem SlimSana-Protokoll: 98%</p>
-        </div>
-    </div>
-    """
-    st.markdown(resultado_html, unsafe_allow_html=True)
+    # Visual limpo e original (fundo branco padrão do Streamlit, sem bordas Paint)
+    st.markdown(f"""
+    ### Ihr Ergebnis: Stoffwechsel-Blockade Typ 3
+    
+    Hallo **{st.session_state.nome_usuario}**, basierend auf Ihrem Alter ({st.session_state.q5}), 
+    Ihrem Gewicht ({st.session_state.peso_usuario} kg) und Ihrer Größe ({st.session_state.altura_usuario} cm), 
+    haben wir ein enzymatisches Ungleichgewicht festgestellt, das durch **{st.session_state.q2.lower()}** Schlaf verursacht wird.
+    
+    Das SlimSana-Protokoll wurde zu 98% als kompatibel mit Ihrem Profil eingestuft.
+    """)
     
     st.write("")
     st.link_button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", LINK_AFILIADO)
