@@ -8,9 +8,11 @@ from datetime import datetime
 # --- 1. CONFIGURAÇÃO DE LOG ---
 def salvar_log_google(pergunta, resultado):
     try:
+        # Conexão utilizando st-gsheets-connection
         conn = st.connection("gsheets", type=GSheetsConnection)
         origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
         
+        # Criação do novo registro
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "Origem": origem_final,
@@ -19,14 +21,19 @@ def salvar_log_google(pergunta, resultado):
         }])
         
         try:
-            dados_atuais = conn.read()
+            # Tenta ler os dados existentes na aba 'Página1'
+            dados_atuais = conn.read(worksheet="Página1")
+            # Concatena preservando a estrutura
             df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
+            # Se a aba estiver vazia ou não existir, o novo log torna-se a base
             df_final = novo_log
             
-        conn.update(data=df_final)
+        # Atualiza a planilha na aba correta
+        conn.update(worksheet="Página1", data=df_final)
     except Exception as e:
-        print(f"Erro de Log: {e}")
+        # Usando st.error para você conseguir ver o erro no navegador se falhar
+        st.error(f"Erro de Log: {e}")
 
 # --- 2. CONFIGURAÇÕES ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
@@ -89,7 +96,7 @@ elif st.session_state.pagina == 'quiz':
         q1 = st.selectbox("1. Was ist Ihr Hauptziel?", 
                           ["Bauchfett verlieren", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
         q2 = st.radio("2. Wie bewerten Sie Ihre Schlafqualität?", 
-                      ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, aber keine Energie"])
+                      ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, mas keine Energie"])
         q3 = st.selectbox("3. Wann verspüren Sie am meisten Hunger?", 
                           ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
         q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", 
