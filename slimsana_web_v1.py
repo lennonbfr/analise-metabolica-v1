@@ -156,6 +156,13 @@ elif st.session_state.pagina == 'resultado':
     """)
     
     st.write("")
-    st.link_button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", LINK_AFILIADO)
+    
+    # Substituição da linha st.link_button para rastrear o clique de saída
+    if st.button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", use_container_width=True):
+        # 1. Registra no seu funil que o cliente clicou para comprar
+        salvar_log_google("CLICK_CHECKOUT", f"Usuario: {st.session_state.nome_usuario} clicou no botão de vendas")
+        
+        # 2. Redireciona para o seu link de afiliado
+        st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
 
 
