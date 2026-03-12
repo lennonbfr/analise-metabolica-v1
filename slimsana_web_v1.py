@@ -1,157 +1,175 @@
 import streamlit as st
-import uuid
-import time
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
+import time
+import random
 from datetime import datetime
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from streamlit_gsheets import GSheetsConnection
 
-# --- 1. CONFIGURAÇÃO DE LOG (OTIMIZADA) ---
-def salvar_log_google(pergunta, resultado):
+# --- 1. CONFIGURAÇÃO DE LOG (MELHORIA EVA: COLUNAS PADRONIZADAS) ---
+def salvar_log_evento(evento, detalhe):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
-        origem_final = st.session_state.get('origem', 'FacebookAds_DE_AT')
+        params = st.query_params
+        origem = params.get("utm_source", "Direto/Teste")
+        cidade = params.get("utm_city", "Indefinida")
         
-        # Agora as colunas e os logs são 100% em português
         novo_log = pd.DataFrame([{
             "Data/Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-            "Origem": origem_final,
-            "Evento": pergunta,  # Mudamos de 'Dificuldade' para 'Evento'
-            "Detalhe": resultado  # Mudamos de 'Resultado' para 'Detalhe'
+            "Origem": origem,
+            "Cidade": cidade,
+            "Evento": evento,
+            "Detalhe": detalhe
         }])
         
         try:
             dados_atuais = conn.read(worksheet="Página1", ttl=0)
-            if not dados_atuais.empty:
-                df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
-            else:
-                df_final = novo_log
+            df_final = pd.concat([dados_atuais, novo_log], ignore_index=True)
         except:
             df_final = novo_log
             
         conn.update(worksheet="Página1", data=df_final)
     except Exception as e:
-        print(f"Erro no log: {e}")
+        st.error(f"Erro no log: {e}")
 
-# --- 2. CONFIGURAÇÕES ---
+# --- 2. GERAÇÃO DE PDF ---
+def gerar_pdf_report(nome, score, m_type):
+    file_name = f"Analyse_{nome.replace(' ', '_')}.pdf"
+    c = canvas.Canvas(file_name, pagesize=letter)
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(50, 750, "BIO-RESET METABOLISCHE ANALYSE")
+    c.setFont("Helvetica", 12)
+    c.drawString(50, 720, f"Erstellt für: {nome}")
+    c.drawString(50, 700, f"Datum: {datetime.now().strftime('%d.%m.%Y')}")
+    c.line(50, 690, 550, 690)
+    c.drawString(50, 660, f"Stoffwechsel-Typ: {m_type}")
+    c.drawString(50, 640, f"Metabolic Score: {score}/100")
+    c.save()
+    return file_name
+
+# --- 3. INICIALIZAÇÃO E CONFIGS ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
+CIDADES_ELITE = ["Berlin", "München", "Hamburg", "Wien", "Zürich", "Frankfurt"]
 
-if 'origem' not in st.session_state:
-    params = st.query_params
-    st.session_state.origem = params.get("utm_content", "FacebookAds_DE_AT")
+st.set_page_config(page_title="BioReset Analysis", page_icon="🔬")
+
+# MELHORIA EVA: Garantir que o 'step' exista sempre
+if 'step' not in st.session_state:
+    st.session_state.step = 1
 
 if 'pagina' not in st.session_state:
-    st.session_state.pagina = 'home'
+    params = st.query_params
+    if params.get("utm_source") in ["taboola", "outbrain", "facebook"]:
+        st.session_state.pagina = 'advertorial'
+    else:
+        st.session_state.pagina = 'home'
 
-# --- LOG DE ENTRADA (NOVO) ---
-# Isso registra assim que o site carrega na tela do usuário
-if 'usuario_chegou' not in st.session_state:
-    st.session_state.usuario_chegou = True
-    # Registra na planilha que o link foi clicado e a imagem inicial carregou
-    salvar_log_google("Acessou o Link", "Usuário carregou a página inicial do teste")
+# --- TELA: ADVERTORIAL ---
+if st.session_state.pagina == 'advertorial':
+    cidade = st.query_params.get("utm_city", random.choice(CIDADES_ELITE))
+    
+    # Log de entrada automática (Sugerido pela Eva)
+    if 'log_advertorial' not in st.session_state:
+        salvar_log_evento("Acesso Advertorial", f"Cidade: {cidade}")
+        st.session_state.log_advertorial = True
 
-# Trava para evitar repetição de balões e logs de conclusão
-if 'log_concluido' not in st.session_state:
-    st.session_state.log_concluido = False
+    st.markdown(f"**Wissenschaft & Gesundheit | {cidade} | {datetime.now().strftime('%d.%m.%Y')}**")
+    st.markdown(f"# Neuer 30-Sekunden-Test zeigt möglichen Stoffwechsel-Block bei Erwachsenen in {cidade}")
+    st.image("https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=800&q=80")
+    
+    st.info(f"📊 Aktuelle Schätzung: Hohes Analyse-Aufkommen in {cidade}.")
+    
+    if st.button(f"👉 KOSTENLOSE ANALYSE STARTEN", use_container_width=True):
+        salvar_log_evento("Iniciou Quiz", f"Origem: Advertorial ({cidade})")
+        st.session_state.pagina = 'quiz'
+        st.rerun()
+    
+    st.caption("Hinweis: Dieser Test ersetzt keine medizinische Beratung.")
 
-st.set_page_config(page_title="BioReset Analyse", page_icon="🧪")
-
-# --- 3. CSS ORIGINAL ---
-st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        background-color: #28a745 !important;
-        color: white !important;
-        border: 2px solid black !important;
-        border-radius: 10px;
-        font-weight: 800 !important;
-        font-size: 1.3em !important;
-        height: 4.5em;
-        width: 100%;
-        text-shadow: 1px 1px 2px black;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- TELA 1: HOME ---
-if st.session_state.pagina == 'home':
-    st.markdown('# 🍎 Test: Warum Ihr Körper nach dem 30. Lebensjahr "blockiert"?')
-    st.write("---")
+# --- TELA: HOME ---
+elif st.session_state.pagina == 'home':
+    st.markdown("# 🔬 BioReset Stoffwechsel-Analyse")
     st.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80")
-    
-    st.info("Finden Sie heraus, warum herkömmliche Diäten nicht für Ihr genetisches Profil funktionieren.")
-    
-    if st.button("🔥 MEINEN STOFFWECHSEL JETZT FREISCHALTEN"):
-        salvar_log_google("Entrou no Site", "Cliente visualizou a página inicial")
+    if st.button("JETZT ANALYSE STARTEN"):
+        salvar_log_evento("Iniciou Quiz", "Origem: Home")
         st.session_state.pagina = 'quiz'
         st.rerun()
 
-# --- TELA 2: QUESTIONÁRIO ---
+# --- TELA: ADAPTIVE QUIZ (MELHORIA EVA: SALVAR RESPOSTAS) ---
 elif st.session_state.pagina == 'quiz':
-    st.subheader("📋 Persönliche Angaben")
-    with st.form("quiz_form"):
-        nome_input = st.text_input("Vollständiger Name")
-        c1, c2 = st.columns(2)
-        with c1:
-            peso_input = st.number_input("Gewicht (kg)", min_value=40.0, max_value=200.0, value=75.0, step=0.1)
-        with c2:
-            altura_input = st.number_input("Größe (cm)", min_value=120, max_value=220, value=170, step=1)
-        
-        st.write("---")
-        q1 = st.selectbox("1. Was ist Ihr Hauptziel?", ["Bauchfett verlieren", "Mehr Energie im Alltag", "Heißhungerattacken stoppen", "Stoffwechsel beschleunigen"])
-        q2 = st.radio("2. Wie bewerten Sie Ihre Schlafqualität?", ["Ich wache müde auf", "Leichter/Unterbrochener Schlaf", "Guter Schlaf, mas keine Energie"])
-        q3 = st.selectbox("3. Wann verspüren Sie am meisten Hunger?", ["Vormittags", "Nachmittags (Stress)", "Abends/Nachts"])
-        q4 = st.radio("4. Fühlen Sie sich nach dem Essen oft aufgebläht?", ["Ja, fast jeden Tag", "Manchmal", "Selten"])
-        q5 = st.slider("5. Wie alt sind Sie?", 18, 80, 43)
-        
-        if st.form_submit_button("ANALYSE STARTEN"):
-            st.session_state.update({
-                "nome_usuario": nome_input if nome_input else "Besucher",
-                "peso_usuario": peso_input,
-                "altura_usuario": altura_input,
-                "q1": q1, "q2": q2, "q3": q3, "q4": q4, "q5": q5,
-                "pagina": 'resultado',
-                "log_concluido": False # Reseta a trava para o novo teste
-            })
-            st.rerun()
+    if st.session_state.step == 1:
+        st.write("Frage 1 von 3")
+        st.progress(0.33)
+        with st.form("quiz_1"):
+            problem = st.selectbox("Was ist aktuell Ihre größte Herausforderung?", ["Bauchfett", "Müdigkeit", "Heißhunger"])
+            if st.form_submit_button("Weiter"):
+                st.session_state.problem = problem
+                st.session_state.step = 2
+                st.rerun()
+    
+    elif st.session_state.step == 2:
+        st.write("Frage 2 von 3")
+        st.progress(0.66)
+        p = "Haben Sie oft das Gefühl, dass Ihr Körper 'blockiert'?" if st.session_state.problem == "Bauchfett" else "Fühlen Sie sich nach dem Essen oft schläfrig?"
+        with st.form("quiz_2"):
+            res2 = st.radio(p, ["Ja", "Manchmal", "Nein"])
+            if st.form_submit_button("Weiter"):
+                st.session_state.res2 = res2 # MELHORIA EVA: Salvando a resposta
+                st.session_state.step = 3
+                st.rerun()
 
-# --- TELA 3: RESULTADO (VERSÃO FINAL LIMPA) ---
-elif st.session_state.pagina == 'resultado':
-    # Executa apenas na primeira vez que entra na tela para não repetir balões e logs
-    if not st.session_state.log_concluido:
-        with st.status("Verarbeitung der Bio-Indikatoren...", expanded=True) as status:
-            st.write("🧬 Zell-Marker werden analysiert...")
-            time.sleep(1.2)
-            status.update(label="Analyse Abgeschlossen!", state="complete", expanded=False)
+    elif st.session_state.step == 3:
+        st.write("Frage 3 von 3")
+        st.progress(0.95)
+        with st.form("quiz_3"):
+            nome_raw = st.text_input("Ihr Vorname")
+            idade = st.slider("Alter", 18, 80, 42)
+            if st.form_submit_button("ANALYSE DURCHFÜHREN"):
+                # MELHORIA EVA: Tratar nome vazio e log de conclusão
+                st.session_state.nome = nome_raw if nome_raw else "Besucher"
+                salvar_log_evento("Quiz Concluído", f"Problema: {st.session_state.problem} | Idade: {idade}")
+                st.session_state.pagina = 'analyzing'
+                st.rerun()
 
-        # LOG 100% EM PORTUGUÊS E SEM POLUIÇÃO DE DADOS TÉCNICOS
-        log_limpo = f"O usuário {st.session_state.nome_usuario} finalizou o teste com sucesso."
-        salvar_log_google("Realizou o Teste", log_limpo)
-        
-        st.balloons()
-        st.session_state.log_concluido = True # Trava para não repetir nada
+# --- TELA: ANALYZING (SIMULADOR) ---
+elif st.session_state.pagina == 'analyzing':
+    with st.status("🧬 Analysiere BioMarker...", expanded=True) as s:
+        time.sleep(1.2); s.update(label="Abgleich com Datenbank...", state="running")
+        time.sleep(1.2); s.update(label="Analyse abgeschlossen!", state="complete")
+    st.session_state.pagina = 'optin'; st.rerun()
 
-    st.success("✅ ANALYSE ABGESCHLOSSEN!")
-    
-    # O cliente vê o resultado dele (necessário para a conversão), mas você não recebe isso no log
-    st.markdown(f"""
-    ### Ihr Ergebnis: Stoffwechsel-Blockade Typ 3
-    
-    Hallo **{st.session_state.nome_usuario}**, basierend auf Ihrem Alter ({st.session_state.q5}), 
-    Ihrem Gewicht ({st.session_state.peso_usuario} kg) und Ihrer Größe ({st.session_state.altura_usuario} cm), 
-    haben wir ein enzymatisches Ungleichgewicht festgestellt.
-    
-    Das SlimSana-Protokoll wurde zu 98% als kompatibel mit Ihrem Profil eingestuft.
-    """)
-    
-    st.write("")
-    
-    if st.button("🔥 JETZT ZUM SLIMSANA-PROTOKOLL", use_container_width=True):
-        # MUDANÇA TÉCNICA: Identificando que ele foi para a página de vendas/produto, não pagamento direto.
-        detalhe_saida = f"O usuário {st.session_state.nome_usuario} saiu do quiz para a Página do Produto (VSL)."
-        salvar_log_google("Acessou Página de Vendas", detalhe_saida)
-        
+# --- TELA: OPT-IN ---
+elif st.session_state.pagina == 'optin':
+    st.metric("Metabolic Score", "62/100")
+    st.write("### Erhalten Sie Ihren persönlichen Stoffwechselbericht als PDF")
+    email = st.text_input("E-Mail-Adresse")
+    if st.button("BERICHT FREISCHALTEN"):
+        if "@" in email:
+            st.session_state.email = email
+            salvar_log_evento("Lead Capturado", email)
+            st.session_state.pagina = 'report'; st.rerun()
+        else: st.error("Bitte gültige E-Mail eingeben")
+
+# --- TELA: REPORT + PDF (MELHORIA EVA: LOG DE DOWNLOAD) ---
+elif st.session_state.pagina == 'report':
+    st.markdown(f"## 🧬 Bericht für {st.session_state.nome}")
+    pdf_path = gerar_pdf_report(st.session_state.nome, 62, st.session_state.problem)
+    with open(pdf_path, "rb") as f:
+        # Nota: download_button do Streamlit não permite disparar função ao clicar facilmente sem hack, 
+        # mas registramos que ele CHEGOU nesta tela de download.
+        if st.download_button("📥 Analyse als PDF speichern", f, file_name=pdf_path):
+             salvar_log_evento("PDF Download Realizado", st.session_state.email)
+
+    if st.button("🔬 WEITER ZUR ERKLÄRUNG"):
+        st.session_state.pagina = 'bridge'; st.rerun()
+
+# --- TELA: BRIDGE (REDIRECT) ---
+elif st.session_state.pagina == 'bridge':
+    # Pre-connect para agilizar a VSL
+    st.markdown('<link rel="preconnect" href="https://myslimsana.com">', unsafe_allow_html=True)
+    st.markdown("# 🔬 Die Lösung")
+    st.write("Basierend auf Ihrem Score von 62/100, sehen Sie sich die Video-Präsentation an.")
+    if st.button("🎥 VIDEO ANSEHEN"):
+        salvar_log_evento("Clicou para VSL", st.session_state.email)
         st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
-        st.stop()
-
-
-
