@@ -11,7 +11,7 @@ def salvar_log_evento(evento, detalhe):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         params = st.query_params
-        origem = params.get("utm_source", "facebook")
+        origem = params.get("utm_source", "direto")
         cidade = params.get("utm_city", "Indefinida")
         
         novo_log = pd.DataFrame([{
@@ -40,6 +40,7 @@ def calcular_score():
     if st.session_state.get('res5') == "Ja, sehr häufig": score -= 10
     elif st.session_state.get('res5') == "Manchmal": score -= 5
     if st.session_state.get('res4') == "Nach dem Mittagessen": score -= 4
+    
     p_map = {"Bauchfett": 4, "Müdigkeit": 3, "Heißhunger": 5}
     score -= p_map.get(st.session_state.get('problem'), 0)
     return max(min(score, 74), 56)
@@ -75,7 +76,7 @@ def obter_detalhes_perfil(label):
             "sinais": ["starke Heißhungerimpulse", "instabile Sättigung"]
         }
 
-# --- 3. GERAÇÃO DE PDF ESTRUTURADO ---
+# --- 3. GERAÇÃO DE PDF ---
 def gerar_pdf_report(nome, score, label, idade_real, idade_meta):
     detalhes = obter_detalhes_perfil(label)
     file_name = f"Analyse_{nome.replace(' ', '_')}.pdf"
@@ -94,35 +95,44 @@ def gerar_pdf_report(nome, score, label, idade_real, idade_meta):
     
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, 640, "1. Analyse-Ergebnis")
+    c.roundRect(50, 570, 220, 55, 8, stroke=1, fill=0) 
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(65, 608, "METABOLISCHER INDEX")
+    c.setFont("Helvetica-Bold", 24)
+    c.drawString(65, 582, f"{score}/100")
+    
     c.setFont("Helvetica", 12)
-    c.drawString(50, 620, f"Metabolischer Index: {score}/100")
-    c.drawString(50, 605, f"Stoffwechsel-Profil: {label}")
+    c.drawString(50, 550, f"Stoffwechsel-Profil: {label}")
     
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(50, 570, "2. Vergleich mit Ihrer Altersgruppe")
+    c.drawString(50, 510, "2. Vergleich mit Ihrer Altersgruppe")
     c.setFont("Helvetica", 12)
-    c.drawString(50, 550, "Ihr Index liegt unter dem Durchschnitt Ihrer Altersgruppe.")
+    c.drawString(50, 490, "Ihr Index liegt unter dem Durchschnitt Ihrer Altersgruppe.")
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, 535, f"Geschätztes metabolisches Alter: ca. {idade_meta} Jahre")
+    c.drawString(50, 475, f"Geschätztes metabolisches Alter: ca. {idade_meta} Jahre")
     
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(50, 500, "3. Profilbeschreibung")
+    c.drawString(50, 430, "3. Profilbeschreibung")
     c.setFont("Helvetica", 11)
-    text_object = c.beginText(50, 480)
+    text_object = c.beginText(50, 410)
     text_object.textLines(detalhes["desc"])
+    text_object.textLine("")
+    text_object.textLine("Typische Hinweise:")
+    for s in detalhes["sinais"]:
+        text_object.textLine(f"- {s}")
     c.drawText(text_object)
-    
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(50, 430, "4. Ausblick & Empfehlung")
-    c.setFont("Helvetica-Oblique", 11)
-    c.drawString(50, 410, "Die gute Nachricht: Ihr Stoffwechsel ist kein statischer Zustand.")
-    c.drawString(50, 395, "Mit den richtigen Anpassungen ist eine deutliche Verbesserung möglich.")
-    c.drawString(50, 380, "Eine gezielte Unterstützung kann helfen, Energie und Balance zu verbessern.")
+
+    c.line(50, 250, 550, 250)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, 230, "Nächste Schritte:")
+    c.setFont("Helvetica", 11)
+    c.drawString(50, 215, "Es gibt spezifische Methoden, um dieses Gleichgewicht wiederherzustellen.")
+    c.drawString(50, 200, "Sehen Sie sich die Video-Analyse für detaillierte Empfehlungen an.")
     
     c.save()
     return file_name
 
-# --- 4. CONFIGURAÇÕES ---
+# --- 4. CONFIGURAÇÕES E FLUXO ---
 LINK_AFILIADO = "https://myslimsana.com/slimsana-pdp-fe?aff=lennonbfr"
 st.set_page_config(page_title="BioReset Analysis", page_icon="🔬")
 
@@ -131,26 +141,43 @@ if 'pagina' not in st.session_state:
     p = st.query_params.get("utm_source")
     st.session_state.pagina = 'advertorial' if p in ["facebook", "instagram", "meta", "taboola", "outbrain"] else 'home'
 
-# --- TELA: ADVERTORIAL (REFINADO) ---
+# --- TELA: ADVERTORIAL ---
 if st.session_state.pagina == 'advertorial':
     if 'log_view_adv' not in st.session_state:
         salvar_log_evento("Visualizou Advertorial", "Entrada via Tráfego Pago")
         st.session_state.log_view_adv = True
+
     st.markdown(f"**Wissenschaft & Gesundheit | {datetime.now().strftime('%d.%m.%Y')}**")
-    st.markdown("# Neuer 30-Sekunden-Test zeigt möglichen Stoffwechsel-Block bei Erwachsenen")
-    st.caption("Ein kurzer Test kann erste Hinweise auf Ihr aktuelles Stoffwechsel-Profil geben.")
+    st.markdown("# Neuer 30-Sekunden-Test zeigt möglichen Stoffwechsel-Block ab 40")
+    
+    # Ajuste: Linhas em branco para melhor visualização
+    st.markdown("""
+    Viele Erwachsene bemerken im Alltag erste Veränderungen ihres Stoffwechsels:
+
+    • **Zunehmendes Bauchfett** trotz normaler Ernährung  
+    • **Energieabfall** nach dem Mittagessen  
+    • **Wiederkehrende Heißhunger-Phasen**
+
+    Ein kurzer Analyse-Test kann erste Hinweise auf mögliche Ursachen geben.
+    """)
+    
     st.image("https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=800&q=80")
-    if st.button("👉 KOSTENLOSE ANALYSE STARTEN", use_container_width=True):
-        salvar_log_evento("Iniciou Quiz", "Origem: Advertorial"); st.session_state.pagina = 'quiz'; st.rerun()
+    if st.button("👉 JETZT 30-SEKUNDEN-TEST STARTEN", use_container_width=True):
+        salvar_log_evento("Iniciou Quiz", "Origem: Advertorial")
+        st.session_state.step = 1
+        st.session_state.pagina = 'quiz'; st.rerun()
 
 # --- TELA: HOME ---
 elif st.session_state.pagina == 'home':
     if 'log_view_home' not in st.session_state:
-        salvar_log_evento("Visualizou Home", "Entrada Direta"); st.session_state.log_view_home = True
+        salvar_log_evento("Visualizou Home", "Entrada Direta")
+        st.session_state.log_view_home = True
     st.markdown("# 🔬 BioReset Stoffwechsel-Analyse")
     st.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80")
     if st.button("JETZT ANALYSE STARTEN"):
-        salvar_log_evento("Iniciou Quiz", "Origem: Home"); st.session_state.pagina = 'quiz'; st.rerun()
+        salvar_log_evento("Iniciou Quiz", "Origem: Home")
+        st.session_state.step = 1
+        st.session_state.pagina = 'quiz'; st.rerun()
 
 # --- TELA: QUIZ ---
 elif st.session_state.pagina == 'quiz':
@@ -163,9 +190,12 @@ elif st.session_state.pagina == 'quiz':
             if st.form_submit_button("Weiter"):
                 st.session_state.problem = prob; st.session_state.step = 2; st.rerun()
     elif st.session_state.step == 2:
-        if st.session_state.problem == "Bauchfett": p = "Haben Sie das Gefühl, dass Ihr Körper trotz Bemühungen kaum auf Veränderungen reagiert?"
-        elif st.session_state.problem == "Müdigkeit": p = "Fühlen Sie sich trotz ausreichend Schlaf tagsüber häufig erschöpft?"
-        else: p = "Haben Sie besonders am Nachmittag oder Abend starke Heißhungerphasen?"
+        if st.session_state.problem == "Bauchfett":
+            p = "Haben Sie das Gefühl, dass Ihr Körper trotz Bemühungen kaum auf Veränderungen reagiert?"
+        elif st.session_state.problem == "Müdigkeit":
+            p = "Fühlen Sie sich trotz ausreichend Schlaf tagsüber häufig erschöpft?"
+        else:
+            p = "Haben Sie besonders am Nachmittag oder Abend starke Heißhungerphasen?"
         with st.form("q2"):
             res2 = st.radio(p, ["Ja", "Manchmal", "Nein"])
             if st.form_submit_button("Weiter"):
@@ -175,11 +205,10 @@ elif st.session_state.pagina == 'quiz':
             nome_in = st.text_input("Ihr Vorname")
             idade = st.slider("Alter", 18, 80, 42)
             if st.form_submit_button("Weiter"):
-                st.session_state.nome = nome_in if nome_in else "Besucher"
-                st.session_state.idade = idade; st.session_state.step = 4; st.rerun()
+                st.session_state.nome = nome_in if nome_in else "Besucher"; st.session_state.idade = idade; st.session_state.step = 4; st.rerun()
     elif st.session_state.step == 4:
         with st.form("q4"):
-            res4 = st.radio("Wann fühlen Sie sich am energielosesten?", ["Morgens", "Nach dem Mittagessen", "Am späten Nachmittag", "Abends"])
+            res4 = st.radio("Wann fühlen Sie sich energielos?", ["Morgens", "Nach dem Mittagessen", "Am späten Nachmittag", "Abends"])
             if st.form_submit_button("Weiter"):
                 st.session_state.res4 = res4; st.session_state.step = 5; st.rerun()
     elif st.session_state.step == 5:
@@ -204,18 +233,25 @@ elif st.session_state.pagina == 'optin':
     score = calcular_score()
     st.session_state.score = score
     st.session_state.m_label = definir_label_metabolico()
-    
     st.metric("Metabolischer Index", f"{score}/100")
     st.write("### Vergleich mit Ihrer Altersgruppe")
     st.progress(score/100)
+    
+    # Ajuste: Comparação explícita com a média etária
     st.caption(f"Durchschnitt (Alter {st.session_state.idade-2}-{st.session_state.idade+3}): 74/100")
-    st.warning("Ihr Ergebnis deutet auf eine metabolische Dysbalance hin.")
+    
+    st.warning("Ihr Ergebnis liegt unter dem Durchschnitt Ihrer Altersgruppe. Der vollständige Bericht zeigt, welche Faktoren Ihren Stoffwechsel aktuell beeinflussen könnten.")
+    st.write("### Ihr vollständiger Bericht enthält:")
+    st.markdown("- Ihr **metabolisches Profil**\n- eine **Einordnung Ihres Stoffwechsel-Index**\n- eine **orientierende Alterseinschätzung**")
     
     email = st.text_input("E-Mail-Adresse für den ausführlichen Bericht")
-    if st.button("BERICHT FREISCHALTEN"):
+    st.caption("Keine lange Registrierung – Ihr Bericht wird sofort freigeschaltet.")
+    
+    if st.button("📄 PERSÖNLICHEN BERICHT FREISCHALTEN"):
         if "@" in email:
             st.session_state.email = email
-            salvar_log_evento("Lead Capturado", email); st.session_state.pagina = 'report'; st.rerun()
+            salvar_log_evento("Lead Capturado", email)
+            st.session_state.pagina = 'report'; st.rerun()
 
 # --- TELA: REPORT ---
 elif st.session_state.pagina == 'report':
@@ -231,9 +267,9 @@ elif st.session_state.pagina == 'report':
 # --- TELA: BRIDGE ---
 elif st.session_state.pagina == 'bridge':
     st.markdown("""<link rel="preconnect" href="https://myslimsana.com"><link rel="dns-prefetch" href="https://myslimsana.com">""", unsafe_allow_html=True)
-    st.markdown("# 🔬 Nächste Schritte")
     st.write(f"Basierend auf Ihrem Index von {st.session_state.score}/100...")
     if st.button("🎥 VIDEO ANSEHEN"):
         salvar_log_evento("Clicou para VSL", st.session_state.email)
-        with st.spinner("Laden..."): time.sleep(1.2)
+        with st.spinner("Video wird geladen..."):
+            time.sleep(1.2)
         st.markdown(f'<meta http-equiv="refresh" content="0;URL={LINK_AFILIADO}">', unsafe_allow_html=True)
