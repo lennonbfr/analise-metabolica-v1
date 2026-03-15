@@ -15,12 +15,11 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------
-# CSS (CORRIGE AS BARRAS BRANCAS)
+# CSS
 # ---------------------------------------------------
 
 st.markdown("""
 <style>
-
 .stApp {
     background-color: #0f172a;
     color: white;
@@ -28,6 +27,12 @@ st.markdown("""
 
 .block-container {
     max-width: 760px;
+    padding-top: 1.2rem;
+    padding-bottom: 2rem;
+}
+
+h1, h2, h3, h4, h5, h6, p, li, label, div, span {
+    color: white;
 }
 
 .result-box {
@@ -36,6 +41,7 @@ st.markdown("""
     border-radius: 14px;
     border: 1px solid #334155;
     margin-bottom: 18px;
+    color: white;
 }
 
 .warning-box {
@@ -55,7 +61,6 @@ st.markdown("""
     margin-top: 16px;
     color: #bfdbfe;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -64,18 +69,15 @@ st.markdown("""
 # ---------------------------------------------------
 
 def calcular_score():
-
     score = 78
 
     if st.session_state.get("res2") == "Ja":
         score -= 8
-
     elif st.session_state.get("res2") == "Manchmal":
         score -= 4
 
     if st.session_state.get("res3") == "Ja, sehr häufig":
         score -= 10
-
     elif st.session_state.get("res3") == "Manchmal":
         score -= 5
 
@@ -86,12 +88,10 @@ def calcular_score():
     }
 
     score -= mapa.get(st.session_state.get("problem"), 0)
-
-    return max(min(score,85),55)
+    return max(min(score, 85), 55)
 
 
 def calcular_idade_metabolica(idade, score):
-
     acrescimo = 2
 
     if score <= 58:
@@ -107,16 +107,48 @@ def calcular_idade_metabolica(idade, score):
 
 
 def definir_perfil():
-
-    prob = st.session_state.problem
+    prob = st.session_state.get("problem", "")
 
     if prob == "Bauchfett":
         return "Typ A – Verlangsamter Stoffwechsel"
-
-    if prob == "Müdigkeit":
+    elif prob == "Müdigkeit":
         return "Typ B – Energie-Dysbalance"
+    else:
+        return "Typ C – Hunger-Regulation"
 
-    return "Typ C – Hunger-Regulation"
+
+def obter_bullets():
+    prob = st.session_state.get("problem", "")
+
+    if prob == "Bauchfett":
+        return [
+            "Fettverbrennung kann verlangsamt sein",
+            "Bauchfett bleibt oft besonders hartnäckig",
+            "Veränderungen zeigen sich meist erst spät"
+        ]
+    elif prob == "Müdigkeit":
+        return [
+            "Energie fällt im Tagesverlauf spürbar ab",
+            "normale Routinen fühlen sich anstrengender an",
+            "Belastbarkeit schwankt häufiger"
+        ]
+    else:
+        return [
+            "Heißhunger tritt am Nachmittag oder Abend häufiger auf",
+            "Sättigungsgefühl bleibt nicht lange stabil",
+            "Appetit ist schwerer kontrollierbar"
+        ]
+
+
+def obter_titulo_resultado():
+    prob = st.session_state.get("problem", "")
+
+    if prob == "Bauchfett":
+        return "Hinweise auf einen verlangsamten Stoffwechsel"
+    elif prob == "Müdigkeit":
+        return "Hinweise auf eine mögliche Energie-Dysbalance"
+    else:
+        return "Hinweise auf ein mögliches Hunger-Regulationsmuster"
 
 
 # ---------------------------------------------------
@@ -124,39 +156,63 @@ def definir_perfil():
 # ---------------------------------------------------
 
 if "pagina" not in st.session_state:
-    utm = st.query_params.get("utm_source","")
-
-    if isinstance(utm,list):
+    utm = st.query_params.get("utm_source", "")
+    if isinstance(utm, list):
         utm = utm[0]
 
-    if utm in ["facebook","instagram","meta"]:
+    if utm in ["facebook", "instagram", "meta", "taboola", "outbrain"]:
         st.session_state.pagina = "advertorial"
     else:
         st.session_state.pagina = "home"
 
-
 if "step" not in st.session_state:
     st.session_state.step = 1
 
+# ---------------------------------------------------
+# HOME
+# ---------------------------------------------------
+
+if st.session_state.pagina == "home":
+    st.markdown(f"**BioReset Analyse | {datetime.now().strftime('%d.%m.%Y')}**")
+    st.title("Kostenloser Stoffwechsel-Test in 30 Sekunden")
+
+    st.write("""
+Viele Menschen bemerken mit der Zeit Veränderungen wie:
+
+- **mehr Bauchfett**
+- **weniger Energie**
+- **häufiger Heißhunger**
+""")
+
+    st.write("""
+Mit diesem kurzen Test erhalten Sie eine erste Einschätzung,
+welches Stoffwechsel-Muster bei Ihnen wahrscheinlicher ist.
+""")
+
+    if st.button("👉 JETZT TEST STARTEN", use_container_width=True):
+        st.session_state.pagina = "quiz"
+        st.session_state.step = 1
+        st.rerun()
 
 # ---------------------------------------------------
 # ADVERTORIAL
 # ---------------------------------------------------
 
-if st.session_state.pagina == "advertorial":
-
+elif st.session_state.pagina == "advertorial":
     st.markdown(f"**Wissenschaft & Gesundheit | {datetime.now().strftime('%d.%m.%Y')}**")
-
     st.title("Neuer 30-Sekunden-Test zeigt mögliche Stoffwechsel-Blockade ab 40")
 
     st.write("""
 Viele Menschen bemerken plötzlich Veränderungen:
 
-• **mehr Bauchfett** trotz normaler Ernährung  
-• **weniger Energie im Alltag**  
-• **Heißhunger am Nachmittag**
+- **mehr Bauchfett** trotz normaler Ernährung
+- **weniger Energie im Alltag**
+- **Heißhunger am Nachmittag**
+""")
 
-Ein kurzer Test kann Hinweise darauf geben, welches Stoffwechsel-Muster dahinterstecken könnte.
+    st.write("""
+Ein kurzer Test kann Hinweise darauf geben,
+welches Stoffwechsel-Muster dahinterstecken könnte.
 """)
 
     st.image(
@@ -167,169 +223,144 @@ Ein kurzer Test kann Hinweise darauf geben, welches Stoffwechsel-Muster dahinter
     st.write("""
 ### Dieser Test zeigt Ihnen:
 
-✔ welches **Stoffwechsel-Profil** wahrscheinlicher ist  
-✔ wie Ihr Ergebnis im Vergleich zu Ihrer Altersgruppe aussieht  
-✔ welche Maßnahmen häufig empfohlen werden
+- welches **Stoffwechsel-Profil** wahrscheinlicher ist
+- wie Ihr Ergebnis im Vergleich zu Ihrer Altersgruppe aussieht
+- welche Maßnahmen häufig empfohlen werden
 """)
 
     if st.button("👉 TEST IN 30 SEKUNDEN STARTEN", use_container_width=True):
-
         st.session_state.pagina = "quiz"
         st.session_state.step = 1
         st.rerun()
-
 
 # ---------------------------------------------------
 # QUIZ
 # ---------------------------------------------------
 
 elif st.session_state.pagina == "quiz":
-
     st.write(f"Frage {st.session_state.step} von 3")
     st.progress(st.session_state.step / 3)
 
     if st.session_state.step == 1:
-
         with st.form("q1"):
-
             prob = st.selectbox(
                 "Was ist aktuell Ihre größte Herausforderung?",
-                ["Bauchfett","Müdigkeit","Heißhunger"]
+                ["Bauchfett", "Müdigkeit", "Heißhunger"]
             )
 
             if st.form_submit_button("Weiter"):
-
                 st.session_state.problem = prob
                 st.session_state.step = 2
                 st.rerun()
 
-
     elif st.session_state.step == 2:
-
         pergunta = {
-            "Bauchfett":"Reagiert Ihr Körper kaum auf Diät oder Sport?",
-            "Müdigkeit":"Fühlen Sie sich tagsüber häufig erschöpft?",
-            "Heißhunger":"Haben Sie starke Heißhunger-Phasen?"
+            "Bauchfett": "Reagiert Ihr Körper kaum auf Diät oder Sport?",
+            "Müdigkeit": "Fühlen Sie sich tagsüber häufig erschöpft?",
+            "Heißhunger": "Haben Sie starke Heißhunger-Phasen?"
         }[st.session_state.problem]
 
         with st.form("q2"):
-
-            res = st.radio(pergunta,["Ja","Manchmal","Nein"])
+            res = st.radio(pergunta, ["Ja", "Manchmal", "Nein"])
 
             if st.form_submit_button("Weiter"):
-
                 st.session_state.res2 = res
                 st.session_state.step = 3
                 st.rerun()
 
-
     elif st.session_state.step == 3:
-
         with st.form("q3"):
-
-            idade = st.slider("Wie alt sind Sie?",18,80,42)
-
+            idade = st.slider("Wie alt sind Sie?", 18, 80, 42)
             res3 = st.radio(
                 "Fällt es Ihnen schwer Gewicht zu verlieren?",
-                ["Ja, sehr häufig","Manchmal","Selten"]
+                ["Ja, sehr häufig", "Manchmal", "Selten"]
             )
 
             if st.form_submit_button("ANALYSE ANZEIGEN"):
-
                 st.session_state.idade = idade
                 st.session_state.res3 = res3
                 st.session_state.pagina = "analysing"
                 st.rerun()
-
 
 # ---------------------------------------------------
 # ANALYSING
 # ---------------------------------------------------
 
 elif st.session_state.pagina == "analysing":
-
     with st.spinner("Analyse läuft..."):
-        time.sleep(1.5)
+        time.sleep(1.2)
 
     st.session_state.pagina = "result"
     st.rerun()
-
 
 # ---------------------------------------------------
 # RESULTADO
 # ---------------------------------------------------
 
 elif st.session_state.pagina == "result":
-
     score = calcular_score()
     perfil = definir_perfil()
-    idade_meta = calcular_idade_metabolica(st.session_state.idade,score)
+    idade_meta = calcular_idade_metabolica(st.session_state.idade, score)
+    titulo_resultado = obter_titulo_resultado()
+    bullets = obter_bullets()
 
     st.success("Ihre Analyse ist fertig.")
+    st.metric("Metabolischer Index", f"{score}/100")
+    st.progress(score / 100)
 
-    st.metric("Metabolischer Index",f"{score}/100")
-    st.progress(score/100)
-
-    st.caption(f"Vergleichswert Alter {st.session_state.idade-2}-{st.session_state.idade+3}: ca. 74/100")
+    st.caption(
+        f"Vergleichswert für Alter {st.session_state.idade-2}-{st.session_state.idade+3}: ca. 74/100"
+    )
 
     st.markdown(f"""
-<div class="result-box">
-
-### Hinweise auf einen verlangsamten Stoffwechsel
-
-Ihr Ergebnis deutet darauf hin, dass Ihr Körper möglicherweise langsamer auf Gewichtsveränderungen reagiert.
-
-**Profil:** {perfil}  
-**Geschätztes Stoffwechsel-Alter:** {idade_meta}
-
-</div>
-""",unsafe_allow_html=True)
+    <div class="result-box">
+        <h3 style="margin-top:0; color:white;">{titulo_resultado}</h3>
+        <p style="color:white;">
+            Ihr Ergebnis deutet darauf hin, dass Ihr Körper möglicherweise
+            langsamer auf Veränderungen reagiert als üblich.
+        </p>
+        <p style="color:white;"><strong>Stoffwechsel-Profil:</strong> {perfil}</p>
+        <p style="color:white;"><strong>Geschätztes Stoffwechsel-Alter:</strong> {idade_meta} Jahre</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.write("### Auffälligkeiten, die häufig zu diesem Ergebnis passen:")
+    for item in bullets:
+        st.markdown(f"- {item}")
 
     st.markdown("""
-- Fettverbrennung kann verlangsamt sein  
-- Bauchfett bleibt oft besonders hartnäckig  
-- Veränderungen zeigen sich meist erst spät
-""")
+    <div class="warning-box">
+        Ihr Ergebnis zeigt Hinweise darauf, dass gezielte Maßnahmen zur Unterstützung
+        des Stoffwechsels sinnvoll sein könnten.
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("""
-<div class="warning-box">
-Ihr Ergebnis zeigt Hinweise darauf, dass gezielte Maßnahmen zur Unterstützung des Stoffwechsels sinnvoll sein könnten.
-</div>
-""",unsafe_allow_html=True)
+    <div class="cta-box">
+        Im nächsten Schritt sehen Sie eine kurze Erklärung, welche Methode viele
+        Menschen in dieser Situation nutzen.
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("""
-<div class="cta-box">
-Im nächsten Schritt sehen Sie eine kurze Erklärung, welche Methode viele Menschen in dieser Situation nutzen.
-</div>
-""",unsafe_allow_html=True)
-
-    col1,col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
     with col1:
-
-        if st.button("🔁 Test wiederholen",use_container_width=True):
+        if st.button("🔁 Test wiederholen", use_container_width=True):
             st.session_state.step = 1
             st.session_state.pagina = "quiz"
             st.rerun()
 
     with col2:
-
-        if st.button("👉 ERKLÄRUNG JETZT ANSEHEN",use_container_width=True):
+        if st.button("👉 ERKLÄRUNG JETZT ANSEHEN", use_container_width=True):
             st.session_state.pagina = "bridge"
             st.rerun()
-
 
 # ---------------------------------------------------
 # BRIDGE
 # ---------------------------------------------------
 
 elif st.session_state.pagina == "bridge":
-
-    st.warning(
-        f"Ihr Stoffwechsel-Index liegt bei {calcular_score()}/100."
-    )
+    st.warning(f"Ihr Stoffwechsel-Index liegt bei {calcular_score()}/100.")
 
     st.write("""
 Viele Menschen mit ähnlichem Ergebnis berichten,
